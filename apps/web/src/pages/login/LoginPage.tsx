@@ -1,25 +1,25 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/auth-context";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { loginUser, socialSignIn } from "../../store/auth-slice";
 
 export const LoginPage = () => {
-  const { login, socialSignIn } = useAuth();
+  const dispatch = useAppDispatch();
+  const authError = useAppSelector((state) => state.auth.error);
   const navigate = useNavigate();
   const [email, setEmail] = useState("reader@example.com");
   const [password, setPassword] = useState("ChangeMe123!");
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
-    setError("");
 
     try {
-      await login(email, password);
+      await dispatch(loginUser({ email, password })).unwrap();
       navigate("/app/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed.");
+    } catch {
+      // error is captured in authSlice state
     } finally {
       setSubmitting(false);
     }
@@ -27,13 +27,12 @@ export const LoginPage = () => {
 
   const handleSocial = async () => {
     setSubmitting(true);
-    setError("");
 
     try {
-      await socialSignIn(email);
+      await dispatch(socialSignIn({ email })).unwrap();
       navigate("/app/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Mock social sign-in failed.");
+    } catch {
+      // error is captured in authSlice state
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +59,7 @@ export const LoginPage = () => {
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
 
-          {error ? <p className="error">{error}</p> : null}
+          {authError ? <p className="error">{authError}</p> : null}
 
           <div className="button-column">
             <button type="submit" disabled={submitting}>Password Sign In</button>

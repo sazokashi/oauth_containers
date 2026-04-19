@@ -1,36 +1,109 @@
+# Full-stack compose — all services including Nginx reverse proxy.
+# Models a production-like topology with network isolation.
+
 services:
+
+  # ── Data layer (backend network only) ──────────────────────
+
   mongo:
-    image: mongo:7
-    ports:
-      - "27017:27017"
+    build:
+      context: ./containers/mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_APP_USER: ${MONGO_APP_USER}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-oauth_containers}
     volumes:
       - mongo-data:/data/db
+      - ./containers/mongo/dump:/dump-data
+    networks:
+      - backend
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
+    build:
+      context: ./containers/redis
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    networks:
+      - backend
+    mem_limit: 128m
 
-  api:
+  # ── Application layer ──────────────────────────────────────
+
+  oauth-api:
     build:
       context: ./apps/api
     env_file:
       - ./.env
     depends_on:
-      - mongo
-      - redis
-    ports:
-      - "3001:3001"
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    expose:
+      - "3001"
+    networks:
+      - backend
+    mem_limit: 512m
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>{if(!r.ok)throw 1})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  web:
+  oauth-web:
     build:
       context: ./apps/web
     env_file:
       - ./.env
     depends_on:
-      - api
+      - oauth-api
+    expose:
+      - "5173"
+    networks:
+      - frontend
+    mem_limit: 256m
+    cap_drop:
+      - ALL
+
+  # ── Edge layer (bridges frontend and backend) ──────────────
+
+  nginx:
+    build:
+      context: ./containers/nginx
     ports:
-      - "5173:5173"
+      - "8000:80"
+    depends_on:
+      oauth-api:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+    mem_limit: 128m
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+networks:
+  frontend:
+  backend:
 
 volumes:
   mongo-data:

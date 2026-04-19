@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
-import { AuthProvider } from "../auth/auth-context";
+import { Provider } from "react-redux";
+import { store } from "../store";
+import { AuthGate } from "../auth/auth-gate";
 
 export const AppProviders = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
+  <Provider store={store}>
+    <AuthGate>{children}</AuthGate>
+  </Provider>
 );

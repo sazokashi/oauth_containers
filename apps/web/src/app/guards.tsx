@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../auth/auth-context";
+import { useAppSelector } from "../store/hooks";
 
 const LoadingScreen = () => (
   <div className="shell">
@@ -9,9 +9,9 @@ const LoadingScreen = () => (
 );
 
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { status, user } = useAppSelector((state) => state.auth);
 
-  if (loading) {
+  if (status === "idle" || status === "loading") {
     return <LoadingScreen />;
   }
 
@@ -19,9 +19,9 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 };
 
 export const PublicOnlyRoute = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { status, user } = useAppSelector((state) => state.auth);
 
-  if (loading) {
+  if (status === "idle" || status === "loading") {
     return <LoadingScreen />;
   }
 

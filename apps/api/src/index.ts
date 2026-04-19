@@ -10,9 +10,24 @@ const start = async () => {
   await connectRedis();
   await seedAuthData();
 
-  app.listen(env.apiPort, () => {
+  const server = app.listen(env.apiPort, () => {
     logger.info("api.started", { port: env.apiPort, origin: env.webOrigin });
   });
+
+  const shutdown = (signal: string) => {
+    logger.info("api.shutting_down", { signal });
+    server.close(() => {
+      logger.info("api.stopped");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      logger.warn("api.forced_shutdown", { reason: "timeout after 10s" });
+      process.exit(1);
+    }, 10_000).unref();
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
 start().catch((error) => {

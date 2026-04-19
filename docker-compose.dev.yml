@@ -1,0 +1,37 @@
+# Infrastructure-only compose for local development.
+# Use this when running the API and web processes directly on the host
+# (e.g., via `make dev`) while still needing MongoDB and Redis.
+
+services:
+  mongo:
+    build:
+      context: ./containers/mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_APP_USER: ${MONGO_APP_USER}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-oauth_containers}
+    volumes:
+      - mongo-dev-data:/data/db
+      - ./containers/mongo/dump:/dump-data
+    mem_limit: 512m
+    command: mongod --config /etc/mongod.conf --wiredTigerCacheSizeGB 0.25
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    build:
+      context: ./containers/redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    mem_limit: 128m
+
+volumes:
+  mongo-dev-data:

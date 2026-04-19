@@ -2,3 +2,7 @@ node_modules
 dist
 .env
 npm-debug.log
+
+# Database dumps (may contain user data)
+containers/mongo/dump/*.gz
+!containers/mongo/dump/.gitkeep

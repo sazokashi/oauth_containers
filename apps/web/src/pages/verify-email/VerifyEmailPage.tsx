@@ -1,11 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { accountApi } from "../../api";
-import { useAuth } from "../../auth/auth-context";
+import { useAppDispatch } from "../../store/hooks";
+import { reloadUser } from "../../store/auth-slice";
 
 export const VerifyEmailPage = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { reloadUser } = useAuth();
   const [params] = useSearchParams();
   const [email, setEmail] = useState(params.get("email") ?? "reader@example.com");
   const [token, setToken] = useState(params.get("token") ?? "");
@@ -39,7 +40,7 @@ export const VerifyEmailPage = () => {
 
     try {
       await accountApi.confirmVerification(email, token);
-      await reloadUser();
+      await dispatch(reloadUser()).unwrap();
       navigate("/app/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");

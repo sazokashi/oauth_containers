@@ -1,7 +1,7 @@
-import { useAuth } from "../../auth/auth-context";
+import { useAppSelector } from "../../store/hooks";
 
 export const DashboardPage = () => {
-  const { user } = useAuth();
+  const user = useAppSelector((state) => state.auth.user);
 
   return (
     <section className="content-panel">

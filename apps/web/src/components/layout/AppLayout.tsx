@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../../auth/auth-context";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { logoutUser, refreshSession } from "../../store/auth-slice";
 
 export const AppLayout = () => {
-  const { user, logout, refresh } = useAuth();
+  const user = useAppSelector((state) => state.auth.user);
+  const dispatch = useAppDispatch();
 
   return (
     <div className="app-shell">
@@ -28,8 +30,8 @@ export const AppLayout = () => {
         </div>
 
         <div className="button-column">
-          <button type="button" onClick={() => void refresh()}>Refresh Session</button>
-          <button type="button" className="ghost-button" onClick={() => void logout()}>Log Out</button>
+          <button type="button" onClick={() => void dispatch(refreshSession())}>Refresh Session</button>
+          <button type="button" className="ghost-button" onClick={() => void dispatch(logoutUser())}>Log Out</button>
         </div>
       </aside>
 

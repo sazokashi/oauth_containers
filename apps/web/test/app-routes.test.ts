@@ -3,36 +3,39 @@ import assert from "node:assert/strict";
 import React from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { configureStore } from "@reduxjs/toolkit";
+import { Provider } from "react-redux";
 import { AppRoutes } from "../src/app/routes";
-import { AuthContextProvider, type AuthContextValue } from "../src/auth/auth-context";
+import { authReducer } from "../src/store/auth-slice";
 
 afterEach(() => {
   cleanup();
 });
 
-const createAuthValue = (overrides: Partial<AuthContextValue> = {}): AuthContextValue => ({
-  user: null,
-  loading: false,
-  login: async () => undefined,
-  register: async () => ({}),
-  socialSignIn: async () => undefined,
-  refresh: async () => undefined,
-  logout: async () => undefined,
-  reloadUser: async () => undefined,
-  ...overrides
-});
+const createStore = (authOverrides: Record<string, unknown> = {}) =>
+  configureStore({
+    reducer: { auth: authReducer },
+    preloadedState: {
+      auth: {
+        status: "unauthenticated" as const,
+        user: null,
+        error: null,
+        ...authOverrides
+      }
+    }
+  });
 
 const renderRoutes = ({
   route,
-  auth
+  auth = {}
 }: {
   route: string;
-  auth?: Partial<AuthContextValue>;
+  auth?: Record<string, unknown>;
 }) =>
   render(
     React.createElement(
-      AuthContextProvider,
-      { value: createAuthValue(auth) },
+      Provider,
+      { store: createStore(auth) },
       React.createElement(
         MemoryRouter,
         { initialEntries: [route] },
@@ -53,6 +56,7 @@ test("authenticated users are redirected away from public login routes", async (
   renderRoutes({
     route: "/login",
     auth: {
+      status: "authenticated",
       user: {
         email: "reader@example.com",
         displayName: "Reader",
@@ -71,7 +75,7 @@ test("protected routes show a loading screen while auth bootstrap is pending", (
   renderRoutes({
     route: "/app/dashboard",
     auth: {
-      loading: true
+      status: "loading"
     }
   });
 

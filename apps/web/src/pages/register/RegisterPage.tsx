@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/auth-context";
+import { useAppDispatch } from "../../store/hooks";
+import { registerUser } from "../../store/auth-slice";
 
 export const RegisterPage = () => {
-  const { register } = useAuth();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("Example Reader");
   const [email, setEmail] = useState("reader@example.com");
@@ -19,7 +20,7 @@ export const RegisterPage = () => {
     setMessage("");
 
     try {
-      const result = await register(email, password, displayName);
+      const result = await dispatch(registerUser({ email, password, displayName })).unwrap();
       setMessage(result.previewUrl ?? result.message ?? "Account created.");
       navigate(`/verify-email?email=${encodeURIComponent(email)}${result.token ? `&token=${encodeURIComponent(result.token)}` : ""}`);
     } catch (err) {
